@@ -326,77 +326,7 @@ inline void panel_script_startup_v390dk1(){
 
 
 inline void panel_script_refreshratechange_v390dk1(){
-#if PANEL_VERSION==PANEL_IS_V390DK1
-//  PANEL_GPIO0  is mapped to pin 3 on the 51pin connector.  This is the SDA pin
-//  PANEL_GPIO1  is mapped to pin 2 on the 51pin connector.  This is the SCL pin
-
-//  NOCONNECT  is mapped to pin 5 on the 51pin connector.  Pin 5 is the tcon output signal for left/right glasses control
-//  NOCONNECT  is mapped to pin 7 on the 51pin connector.  Pin 6 is the tcon input for SELLLVDS, controls jeida/vesa mode.  (Low=JEIDA, H or open is VESA format)
-//  NOCONNECT  is mapped to pin 26 on the 51pin connector.  Pin 26 is the tcon input for 3DMODE, controls 2d or 3d mode operation. (Low or open = 2d mode, High = 3d mode)  
-//  NOCONNECT  is mapped to pin 27 on the 51pin connector.  Pin 27 is the tcon input signal for left/right frame.  (Low = right eye, High= left eye)
-//  GND        is mapped to pin 42 on the 51pin connector.  Pin 42 is the tcon input for LD_EN, controls local dimming mode.  (Low=disables local dimming, H or open enables local dimming)
-
-#ifdef PANEL_SCL_PIN
-#ifdef PANEL_SDA_PIN
-SoftIIC my_SoftIIC_panel=SoftIIC(PANEL_SCL_PIN, PANEL_SDA_PIN,  PANEL_IIC_SPEED/CLOCK_RATIO, true, false, true); 
- 
-const uint8_t V390DK1_IIC_ADDR = 0xE0>>1; //0x70.  The shift is for 7bit/8bit IIC reasons
-const uint8_t V390DK1_COMMAND_ADDR = 0x26;
-const uint8_t V390DK1_COMMAND_SIZE = 8;
-
-uint8_t V390DK1_COMMAND_SET_2ch[]                             = {0x38, 0x64, 0xfd, 0x00, 0x00, 0x00, 0x00, 0x00};
-uint8_t V390DK1_COMMAND_SET_4ch[]                             = {0x38, 0x64, 0xfd, 0x00, 0x00, 0x00, 0x00, 0x01};
-uint8_t V390DK1_COMMAND_SET_res2k[]                           = {0x38, 0x50, 0x6d, 0x00, 0x00, 0x00, 0x00, 0x00};
-uint8_t V390DK1_COMMAND_SET_res4k[]                           = {0x38, 0x50, 0x6d, 0x00, 0x00, 0x00, 0x00, 0x02};
-uint8_t V390DK1_COMMAND_SET_8BPC[]                            = {0x38, 0x64, 0x1c, 0x00, 0x00, 0x00, 0x00, 0x01};
-uint8_t V390DK1_COMMAND_SET_10BPC[]                           = {0x38, 0x64, 0x1c, 0x00, 0x00, 0x00, 0x00, 0x02};
-uint8_t V390DK1_COMMAND_SET_rotation_part1[]                  = {0x38, 0x50, 0x63, 0x00, 0x00, 0x00, 0x00, 0x01};
-uint8_t V390DK1_COMMAND_SET_rotation_part2[]                  = {0x38, 0x64, 0x33, 0x00, 0x00, 0x00, 0x00, 0x01};
-uint8_t V390DK1_COMMAND_SET_norotation_part1[]                = {0x38, 0x50, 0x63, 0x00, 0x00, 0x00, 0x00, 0x00};
-uint8_t V390DK1_COMMAND_SET_norotation_part2[]                = {0x38, 0x64, 0x33, 0x00, 0x00, 0x00, 0x00, 0x00};
-uint8_t V390DK1_COMMAND_SET_autoblank_zero[]                  = {0x38, 0x64, 0x75, 0x00, 0x00, 0x00, 0x00, 0x00};
-uint8_t V390DK1_COMMAND_SET_LOCALDIMMING_DEMO_DISABLE[]       = {0x38, 0x65, 0x16, 0x00, 0x03, 0x02, 0x01, 0x00};
-uint8_t V390DK1_COMMAND_SET_SUPERRESOLUTION_DEMO_DISABLE[]    = {0x38, 0x65, 0x1A, 0x00, 0x00, 0x00, 0x00, 0x00};
-// Leave the superresolution stuff alone for now
-
-uint16_t DELAY_BETWEEN_IIC_WRITES = 10;
-
-#define SEND_THE_COMMAND(THE_COMMAND) my_SoftIIC_panel.MasterWritePage(V390DK1_IIC_ADDR, V390DK1_COMMAND_ADDR, V390DK1_COMMAND_SIZE, THE_COMMAND); zdelay(DELAY_BETWEEN_IIC_WRITES);
-
-const uint16_t REFRESHRATE_THRESHOLD = 48; // If the refresh rate is above this trehshold, assume that we are in 2k mode
-
-uint16_t refreshrate= GetRefreshRate();
-uint8_t use2kmode=true;
-if( (refreshrate>0) && (refreshrate<REFRESHRATE_THRESHOLD) ) {  use2kmode=false;}
-Serial.print(F("V390DK1@"));  Serial.print(refreshrate); if( use2kmode==true) {Serial.println(F("-> Set 1080p120"));} else { Serial.println(F("-> Set 4k30"));}
-
-// Only support 4ch modes: 4k30 and 1080p120
-SEND_THE_COMMAND(V390DK1_COMMAND_SET_4ch);
-
-if( use2kmode==true) { SEND_THE_COMMAND(V390DK1_COMMAND_SET_res2k); } else { SEND_THE_COMMAND(V390DK1_COMMAND_SET_res4k); }
-
-#if PANEL_BIT_DEPTH  == 10 
-SEND_THE_COMMAND(V390DK1_COMMAND_SET_10BPC);
-#else 
-SEND_THE_COMMAND(V390DK1_COMMAND_SET_8BPC);
-#endif
-
-SEND_THE_COMMAND(V390DK1_COMMAND_SET_norotation_part1);
-SEND_THE_COMMAND(V390DK1_COMMAND_SET_norotation_part2);
-SEND_THE_COMMAND(V390DK1_COMMAND_SET_autoblank_zero);
-SEND_THE_COMMAND(V390DK1_COMMAND_SET_LOCALDIMMING_DEMO_DISABLE);
-SEND_THE_COMMAND(V390DK1_COMMAND_SET_SUPERRESOLUTION_DEMO_DISABLE);
-
-
-//  my_SoftIIC_panel.MasterDumpAll();
- 
- #else 
- #error "GPIO1 NEEDED FOR I2C INTERFACE"
-#endif  
- #else 
- #error "GPIO0 NEEDED FOR I2C INTERFACE"
-#endif  
-#endif
+	// code removed, sorry
 }
 
 #else
