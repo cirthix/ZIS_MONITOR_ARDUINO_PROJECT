@@ -1,0 +1,19 @@
+#ifndef SUPPORTEDOVERCLOCKS_H
+#define SUPPORTEDOVERCLOCKS_H
+
+#if NEEDS_FAST_SYNC_CAPABILITY == true
+#define OVERCLOCKING DISABLED // ENABLE THIS TO USE THE OVERCLOCK LIBRARY FOR HIGHER CLOCKS
+const uint32_t OVERCLOCKED_SPEED = 12000000 ; // Note: 13.3MHz is max for 3.3v according to datasheet.  Subtract 10% for safety's sake.
+#else
+#define OVERCLOCKING DISABLED // ENABLE THIS OUT TO USE THE OVERCLOCK LIBRARY FOR HIGHER CLOCKS
+const uint32_t OVERCLOCKED_SPEED = 8000000 ; // 8MHz is the default speed.
+#endif
+
+#if OVERCLOCKING==ENABLED
+const uint32_t REAL_SPEED = OVERCLOCKED_SPEED;
+#else
+const uint32_t REAL_SPEED = F_CPU;
+#endif
+const float CLOCK_RATIO = 1.0 * REAL_SPEED / F_CPU;
+
+#endif

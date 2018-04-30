@@ -1,0 +1,62 @@
+/*
+
+license information for this file:
+ This file was written by Zisimos Economou.
+ The contents of this file may only be used with the evaluation/demonstration display provided by me.
+ There is no warranty of any sorts with this, but as always, I'm here to help :).
+ You will need a few extra libraries, see below for more informaiton.  These libraries were not produced by me.
+ If you need help, cirthix@gmail.com or zis@cmu.edu or 4123704100
+ Debug output is available if you connect to the serial port at 115200 baud with 8n1 formatting
+ There are testpoints on the board for CLK (divided by 64), HSYNC, VSYNC,and DE.  You can connect a scope probe to this but opening the monitor will be required.  
+ Strobing has some blanking time requirements which wich will require a lower refresh rate.  
+ Using an nvidia override is pretty easy with this link http:www.sevenforums.com/tutorials/33641-screen-refresh-rate-custom-nvidia-brand.html
+ If you want to make the changes permanent by saving to the EDIDs, there is a two step process.
+ First, generate an edid.  I recommend "phoenix edid designer"
+ Second, flash the edid.  You can use linux plus a graphics card to do it through the dvi interface.  You could also write to the eeprom directly with putting GND, 5V, SDA, SCL into the dvi socket and writing the values out.
+ Note that you'll need the onbard atmega168 set to connect the correct edid chip.  
+ For special button combinations, see the function "void handle_button_state(const uint8_t mybuttonstate, const uint8_t lastbuttonstate)"
+
+
+ To program the monitor, attach the "FTDI Friend" to the extension cable coming out of the display to the computer.  it should show up as a usb to serial port adapter.
+ Download the arduino IDE and add the digitalwritefast library as linked to below.
+ Add the following lines to your board.txt file.  Normally located at C:\Program Files (x86)\Arduino\hardware\arduino\avr\boards.txt
+
+##############################################################
+
+minimal168_extraio.name=ATmega168 bare bone (internal 8 MHz clock)
+
+minimal168_extraio.upload.tool=avrdude
+minimal168_extraio.upload.protocol=arduino
+minimal168_extraio.upload.maximum_size=14336
+minimal168_extraio.upload.maximum_data_size=1024
+minimal168_extraio.upload.speed=19200
+
+minimal168_extraio.bootloader.low_fuses=0xe2
+minimal168_extraio.bootloader.high_fuses=0xdd
+minimal168_extraio.bootloader.extended_fuses=0xf8
+minimal168_extraio.bootloader.file=atmega/ATmegaBOOT_168_pro_8MHz.hex
+minimal168_extraio.bootloader.unlock_bits=0x3F
+minimal168_extraio.bootloader.lock_bits=0x0F
+
+minimal168_extraio.build.mcu=atmega168
+minimal168_extraio.build.f_cpu=8000000L
+minimal168_extraio.build.core=arduino
+minimal168_extraio.build.variant=diy
+
+##############################################################
+ Open the sketch in the IDE, select the proper com port, select the board from the list of boards, and hit upload.
+ Open a connection (I recommend putty http:www.chiark.greenend.org.uk/~sgtatham/putty/download.html as the one built into the ide is unstable at times) to the board
+ See what it does as it boots and operates 
+
+ Thanks and enjoy :)
+ -zis
+
+ Note: to add libraries, 
+#include <I2C.h>                            This one is only needed if modifying the ep269 config eeprom.
+#include <EEPROM.h>                           Included in arduino environment
+#include <Wire.h>                             Included in arduino environment
+#include <avr/wdt.h>                           Included in arduino environment
+#include <digitalWriteFast.h>                 External library, https:code.google.com/p/digitalwritefast/downloads/detail?name=digitalWriteFast.zip&can=2&q=
+#include <SoftI2C_SLAVE.h>                    My own library, contact if you don't have it
+ 
+*/
