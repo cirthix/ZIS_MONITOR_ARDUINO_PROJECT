@@ -3,6 +3,8 @@
 #include "SUPPORTED_BOARDS.h"
 
 // This isn't really  a header file so much as a pile of related functions
+//   VERY IMPORTANT NOTE: IN ORDER TO ACCESS PROGMEM BASED STRUCTURES, YOU MUST USE pgm_read_byte_near(STRUCTURE_NAME + OFFSET_WITHIN_STRUCTURE);
+//   SEE THIS FOR MORE INFORMATION: http://playground.arduino.cc/Main/PROGMEM
 
 #define FORCE_INLINE __attribute__((always_inline)) inline
 
@@ -29,36 +31,99 @@ FORCE_INLINE    static uint8_t read_iic_slave(uint8_t chipaddress, uint8_t* valu
 FORCE_INLINE    static uint8_t write_iic_slave(uint8_t chipaddr, uint8_t value);
 
 
-uint8_t virtualeeprom_ep269_config_dumped(uint8_t chipaddress, uint8_t registeraddress) {
-//   VERY IMPORTANT NOTE: IN ORDER TO ACCESS PROGMEM BASED STRUCTURES, YOU MUST USE pgm_read_byte_near(STRUCTURE_NAME + OFFSET_WITHIN_STRUCTURE);
-//   SEE THIS FOR MORE INFORMATION: http://playground.arduino.cc/Main/PROGMEM
+/////////////////////////////////////// EP269 STUFF
 
+
+uint8_t virtualeeprom_ep269_config_dumped(uint8_t chipaddress, uint8_t registeraddress) {
 PROGMEM const uint8_t EP269_CONFIG_EEPROM_0x53_MINIMAL[]          = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x80, 0x02, 0x60, 0x34, 0x00, 0x44, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
-  
   uint8_t retval = 0xFF;
-  if(chipaddress==0x53 && registeraddress<(sizeof(EP269_CONFIG_EEPROM_0x53)/sizeof(uint8_t))) {retval= pgm_read_byte_near(EP269_CONFIG_EEPROM_0x53_MINIMAL+registeraddress);}
+  if(chipaddress==0x53 && registeraddress<(sizeof(EP269_CONFIG_EEPROM_0x53_MINIMAL)/sizeof(uint8_t))) {retval= pgm_read_byte_near(EP269_CONFIG_EEPROM_0x53_MINIMAL+registeraddress);}
   return retval;
-  
 }
 
 
-
-#define EP269_MAX_RESOLUTION_X  2560 // more than 2560 is unsupported as per EPMI contact.  EP269 replaces additional area with corrupt/invalid data.
 uint8_t virtualeeprom_ep269_config_zisworks(uint8_t chipaddress, uint8_t registeraddress) {
 	// There is a procedure for generating the configuration, but it has been removed to avoid breaking NDA
   return virtualeeprom_ep269_config_dumped(chipaddress, registeraddress);
 }
 
-
-
 uint8_t virtualeeprom_ep269_config(uint8_t chipaddress, uint8_t registeraddress) {return virtualeeprom_ep269_config_zisworks(chipaddress, registeraddress);}
 
+
+///////////////////////////////////////
+
+
+/////////////////////////////////////// EP369 STUFF
+
+
+uint8_t ConfigGenerateEPMI(){
+  uint8_t retval = 0x00;
+#ifdef CHIP_IS_EP269 
+// A good working config is tmode (for 4ch operation) + RS (reduced artifacts)
+  retval = (
+// CONFIGMASK_EPMI_EO     |
+// CONFIGMASK_EPMI_LR     |
+ CONFIGMASK_EPMI_TMODE    |
+#if PIXEL_ORDERING == PIXEL_ORDERING_LEFTRIGHT 
+ CONFIGMASK_EPMI_DMODE       |
+ #endif
+#if LVDS_SWING_LEVEL == LVDS_SWING_LEVEL_HIGH 
+ CONFIGMASK_EPMI_RS        |  
+ #endif
+0x00 );
+#endif
+
+#ifdef CHIP_IS_EP369
+retval =
+
+#if LVDS_MAPPING==LVDS_MAPPING_JEIDA
+ CONFIGMASK_EPMI_MAP  |
+#endif
+
+
+// CONFIGMASK_EPMI_EO   |
+ CONFIGMASK_EPMI_LR   |
+ CONFIGMASK_EPMI_TMODE  |
+#if PIXEL_ORDERING == PIXEL_ORDERING_LEFTRIGHT 
+ CONFIGMASK_EPMI_DMODE  |
+ #endif
+#if LVDS_SWING_LEVEL == LVDS_SWING_LEVEL_HIGH
+ CONFIGMASK_EPMI_RS        |  
+ #endif
+ 0x00;
+
+// DW1,DW0 WIDTH meaning: 00=10BIT, 10=8BIT, 01=6BIT, 11=POWERDOWN
+    switch(PANEL_BIT_DEPTH) {
+    case 6: retval=retval| CONFIGMASK_EPMI_DW1 ; break;// DW1,DW0=10
+    case 8: retval=retval| CONFIGMASK_EPMI_DW0 ; break;// DW1,DW0=01
+    case 10: retval=retval ; break; // DW1,DW0=00
+    default: retval=retval | CONFIGMASK_EPMI_DW1| CONFIGMASK_EPMI_DW0; Serial.println(F("Bits??")); 
+    } 
+#endif
+
+return retval;
+}
+
+
+uint8_t virtualeeprom_ep369_config(uint8_t chipaddress, uint8_t registeraddress) {
+if(chipaddress==0x50) {  
+  #ifdef CHIP_IS_EP369_WITH_NEW_FIRMWARE
+    if( registeraddress == ZWSMOD_EP369S_ADDRESS_SPECIAL ) {return ZWSMOD_EP369S_VALUE_SPECIAL; }
+    if( registeraddress == ZWSMOD_EP369S_ADDRESS_CONFIGURATION ) { return ConfigGenerateEPMI(); }
+  #endif  
+  return BUFFERED_EDID[registeraddress];
+  } else {
+    return 0xff;
+  }  
+}
+
+
+///////////////////////////////////////
 
 uint8_t virtualeeprom_all_zero_edid(uint8_t chipaddress, uint8_t registeraddress) {
   uint8_t retval = 0x00;
   return retval;  
 }
-
 
 
 uint8_t virtualeeprom_edid(uint8_t chipaddress, uint8_t registeraddress) {
@@ -73,27 +138,15 @@ uint8_t virtualeeprom_edid(uint8_t chipaddress, uint8_t registeraddress) {
 }
 
 
-
-
-
 uint8_t virtualeeprom(uint8_t chipaddress, uint8_t registeraddress) {  
-#ifdef CHIP_IS_EP269 
-return virtualeeprom_ep269_config( chipaddress,  registeraddress);
-#endif
-
-#ifdef CHIP_IS_EP369 
-if(chipaddress==0x50) {return BUFFERED_EDID[registeraddress];}
-else {return 0xff;}
-//return virtualeeprom_edid( chipaddress,  registeraddress);
-#endif
+  #ifdef CHIP_IS_EP269 
+  return virtualeeprom_ep269_config( chipaddress,  registeraddress);
+  #endif
+  #ifdef CHIP_IS_EP369 
+  return virtualeeprom_ep369_config( chipaddress,  registeraddress);
+  #endif
+  return 0xff;
 }
-
-
-
-
-
-
-
 
 
 

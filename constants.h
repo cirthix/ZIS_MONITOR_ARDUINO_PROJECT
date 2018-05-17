@@ -53,7 +53,6 @@ const uint8_t MAX_USER_EDIDS = 1; // IS EQUAL TO THE POTENTIAL NUMBER OF USER ED
 #define PANEL_IS_M320DVN01         7
 #define PANEL_IS_M240HW01          8
 #define PANEL_IS_LM270WF3          9
-#define PANEL_IS_V390DK1           10
 
 #define BLDRIVER_IS_NONEXISTANT 1  // Not yet tested!
 #define BLDRIVER_IS_GENERIC 2
@@ -111,16 +110,16 @@ const uint16_t SIZE_EDID                = 256;  // IF A 128-BYTE EDID IS USED, J
 const uint8_t EDID_SIGNATURE_SIZE = 8;
 PROGMEM const uint8_t EDID_SIGNATURE[]      = {0x00, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x00};
 
-const uint16_t ADDRESS_MAGIC_BYTE               = 0;
-const uint16_t ADDRESS_POWER_STATE              = 1;
-const uint16_t ADDRESS_SELECTED_EDID            = 2;
-const uint16_t ADDRESS_BACKLIGHT_MODE           = 3;
-const uint16_t ADDRESS_BACKLIGHT_LEVEL_STABLE   = 4;
-const uint16_t ADDRESS_BACKLIGHT_LEVEL_PULSE    = 5;
-const uint16_t ADDRESS_PWM_FREQUENCY            = 6;
-const uint16_t ADDRESS_WAS_SLAVE                = 7;
-const uint16_t ADDRESS_OSD_ENABLED              = 8;
-const uint16_t ADDRESS_USE_OCTESTMODE           = 9;
+const uint16_t ADDRESS_MAGIC_BYTE               = 10;
+const uint16_t ADDRESS_POWER_STATE              = 11;
+const uint16_t ADDRESS_SELECTED_EDID            = 12;
+const uint16_t ADDRESS_BACKLIGHT_MODE           = 13;
+const uint16_t ADDRESS_BACKLIGHT_LEVEL_STABLE   = 14;
+const uint16_t ADDRESS_BACKLIGHT_LEVEL_PULSE    = 15;
+const uint16_t ADDRESS_PWM_FREQUENCY            = 16;
+const uint16_t ADDRESS_WAS_SLAVE                = 17;
+const uint16_t ADDRESS_OSD_ENABLED              = 18;
+const uint16_t ADDRESS_USE_OCTESTMODE           = 19;
 
 #define I2C_TIMEOUT 10
 
@@ -130,20 +129,31 @@ const uint8_t TargetPowerSaveSHUTDOWN = 0; // Shutdown disables the dp recievers
 const uint8_t TargetPowerSaveLOWPOWER = 1; // Lowpower mode disables the fpga, and by extension, the backlight
 const uint8_t TargetPowerSaveFULLY_ON = 2; // System fully operational
 
+const uint8_t SystemState_Init = 0 ;
+const uint8_t SystemState_PowerOff = 1 ;
+const uint8_t SystemState_Rx = 2 ;
+const uint8_t SystemState_Tx = 3 ;
+const uint8_t SystemState_Panel = 4 ;
+const uint8_t SystemState_Backlight = 5 ;
+const uint8_t SystemState_On = 6 ;
+
 const uint8_t BACKLIGHT_MODE_PULSE = 0;
 const uint8_t BACKLIGHT_MODE_OFF = 1;
 const uint8_t BACKLIGHT_MODE_STABLE = 2;
 const uint8_t MINIMUM_REFRESH_RATE = 25;
 
-#define CONFIGMASK_EPMI_DW0          0b00000001
-#define CONFIGMASK_EPMI_DW1          0b00000010
-#define CONFIGMASK_EPMI_MAP          0b00000100
-#define CONFIGMASK_EPMI_EO           0b00001000
-#define CONFIGMASK_EPMI_LR           0b00010000
-#define CONFIGMASK_EPMI_TMODE        0b00100000
-#define CONFIGMASK_EPMI_DMODE        0b01000000
-#define CONFIGMASK_EPMI_RS           0b10000000
-
+// THIS MUST EXACTLY MATCH THE EP369S INTERNAL FIRMWARE VALUE
+const uint8_t ZWSMOD_EP369S_ADDRESS_SPECIAL = 0x00;
+const uint8_t ZWSMOD_EP369S_VALUE_SPECIAL = 0x01;
+const uint8_t ZWSMOD_EP369S_ADDRESS_CONFIGURATION = 0x01;
+const uint8_t CONFIGMASK_EPMI_DW0   = 0b00000001;
+const uint8_t CONFIGMASK_EPMI_DW1   = 0b00000010;
+const uint8_t CONFIGMASK_EPMI_MAP   = 0b00000100;
+const uint8_t CONFIGMASK_EPMI_LR    = 0b00001000;
+const uint8_t CONFIGMASK_EPMI_EO    = 0b00010000;
+const uint8_t CONFIGMASK_EPMI_DMODE = 0b00100000;
+const uint8_t CONFIGMASK_EPMI_TMODE = 0b01000000;
+const uint8_t CONFIGMASK_EPMI_RS    = 0b10000000;
 
 const uint16_t SAVED_FREQUENCY_SCALING = 64;
 const uint8_t FACTORY_DEFAULT_BACKLIGHT_STABLE_BRIGHTNESS = DEFAULT_BRIGHTNESS_LEVEL ; // This default level is set in SUPPORTED_BLDRIVERS.h

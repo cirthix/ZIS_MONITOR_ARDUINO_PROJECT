@@ -1,6 +1,9 @@
 #ifndef SUPPORTEDBOARDS_H
 #define SUPPORTEDBOARDS_H
 
+// Important : If using EP369 with new firmware, select this option:
+//#define CHIP_IS_EP369_WITH_NEW_FIRMWARE
+
 
 #if BOARD_VERSION==BOARD_IS_EP369_REV2017
 inline void board_print_name(){ Serial.println(F("ZisWorks dp2lvds v2017"));}
@@ -26,10 +29,12 @@ const uint16_t PULLDOWN_RESISTOR = 1000;
 #define CONFIG_EPMI_TMODE  8
 #define RESET_OTHER_CHIPS  9
 #define CONFIG_EPMI_MAP  10
+#define ACTIVE_VIDEO 10
 #define BLPIN_PWM_A  11
 #define PANEL_GPIO0  12
 #define PANEL_GPIO1  13
 #define CONFIG_EPMI_DW0  14
+#define LOW_POWER_MODE 14
 #define CONFIG_EPMI_DMODE  15
 
 #elif BOARD_VERSION==BOARD_IS_EP369_REV2016ss
@@ -56,10 +61,12 @@ const uint16_t PULLDOWN_RESISTOR = 1000;
 #define SERIAL_EPMI_RXD  8
 #define SERIAL_EPMI_TXD  9
 #define CONFIG_EPMI_MAP  10
+#define ACTIVE_VIDEO 10
 #define BLPIN_PWM_A  11
 #define PANEL_GPIO0  12
 #define PANEL_GPIO1  13
 #define CONFIG_EPMI_DW0  14
+#define LOW_POWER_MODE 14
 #define CONFIG_EPMI_DMODE  15
 
 
@@ -120,10 +127,12 @@ inline void board_print_name(){ Serial.println(F("ZisWorks dp2lvds v2016"));}
 #define PGOOD_VREG_V1P3  8
 #define PGOOD_VREG_V3P3  9
 #define CONFIG_EPMI_MAP  10
+#define ACTIVE_VIDEO 10
 #define BLPIN_PWM_A  11
 #define PANEL_GPIO0  12
 #define PANEL_GPIO1  13
 #define CONFIG_EPMI_DW0  14
+#define LOW_POWER_MODE 14
 #define CONFIG_EPMI_DMODE  15
 
 
@@ -180,6 +189,7 @@ inline void board_print_name(){ Serial.println(F("ZisWorks dp2lvds prototype"));
 #define CONFIG_EPMI_DMODE  8
 #define CONFIG_EPMI_RS  9 
 #define CONFIG_EPMI_MAP  10
+#define ACTIVE_VIDEO 10
 #define BLPIN_PWM_A  11
 #define BUTTON_UP  12
 #define BUTTON_DOWN  13
@@ -317,7 +327,44 @@ inline void board_print_name(){ Serial.println(F("Personal dvi2lvds prototype(v3
 #define HDMI 3
 
 #ifdef CHIP_IS_EP369
-  #define HOST_INTERFACE DISPLAYPORT   
+  #define HOST_INTERFACE DISPLAYPORT      
+  #ifdef CHIP_IS_EP369_WITH_NEW_FIRMWARE
+    #ifdef DATA_ENABLE
+    // This will break backlight functionality on DP2LVDS standalone systems.  On the x28 and x39, frame sync is generated on fpga, so it can be disabled here.
+      #undef DATA_ENABLE
+    #endif
+    #ifdef CONFIG_EPMI_DW0
+      #undef CONFIG_EPMI_DW0
+    #endif
+    #ifdef CONFIG_EPMI_DW1
+      #undef CONFIG_EPMI_DW1
+    #endif
+    #ifdef CONFIG_EPMI_MAP
+      #undef CONFIG_EPMI_MAP
+    #endif
+    #ifdef CONFIG_EPMI_EO
+      #undef CONFIG_EPMI_EO
+    #endif
+    #ifdef CONFIG_EPMI_LR
+      #undef CONFIG_EPMI_LR
+    #endif
+    #ifdef CONFIG_EPMI_TMODE 
+      #undef CONFIG_EPMI_TMODE
+    #endif
+    #ifdef CONFIG_EPMI_DMODE 
+      #undef CONFIG_EPMI_DMODE
+    #endif
+    #ifdef CONFIG_EPMI_RS 
+      #undef CONFIG_EPMI_RS
+    #endif
+  #else
+    #ifdef ACTIVE_VIDEO 
+      #undef ACTIVE_VIDEO
+    #endif
+    #ifdef LOW_POWER_MODE 
+      #undef LOW_POWER_MODE
+    #endif
+  #endif
 #elif CHIP_IS_EP269
   #define HOST_INTERFACE DLDVI 
 #else

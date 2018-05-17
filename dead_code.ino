@@ -2,6 +2,44 @@
 
 
 
+void serve_the_configuration_eeprom(){
+#ifdef INTERNAL_IIC_CONFIGURATION_EEPROM
+    Serial.println(F("INIT/IICSLAVE"));    
+    #ifdef CHIP_IS_EP369
+       act_as_iic_slave(0x50, 128); //sizeof(EDID)
+    #endif
+    #ifdef CHIP_IS_EP269
+        act_as_iic_slave(0x52, 0xff);
+        act_as_iic_slave(0x53, 0x50);
+    #endif      
+#endif  
+}
+
+
+uint8_t act_as_iic_slave(uint8_t device_address, uint16_t num_bytes){
+  Serial.print(F("\tServing ")); Serial.print(num_bytes); Serial.println(F(" bytes"));
+    Serial.flush();
+noInterrupts();   
+wdt_disable();
+//my_SoftIIC_EPMI.disable_timeout();
+    configure_watchdog_timer_slow(); 
+    uint16_t successful_bytes=0;
+    wdt_reset();
+    uint16_t k=0;
+    while(successful_bytes<num_bytes-1){   
+          successful_bytes=successful_bytes+my_SoftIIC_EPMI.SlaveHandleTransaction(respond_to_address, respond_to_command, respond_to_data, get_current_register_address, set_current_register_address, read_iic_slave, write_iic_slave);
+          if(k>2048) {
+            k=0;   Serial.print(F("IIC bytes:")); Serial.println(successful_bytes);  //Serial.flush();
+          }
+          k++;
+    }
+    Serial.println(F("\t->OK"));
+    wdt_reset();
+    configure_watchdog_timer();
+    wdt_reset();
+    interrupts();
+  return 0;
+}
 
 #elif PANEL_VERSION==PANEL_IS_V390DKZIS
   inline void panel_print_name(){ Serial.println(F("ZWS V390DK1-ZIS"));}
@@ -285,7 +323,7 @@ zdelay(DELAY_BETWEEN_IIC_WRITES);
 my_SoftIIC_panel.MasterWritePage(V390DK1_IIC_ADDR, V390DK1_COMMAND_ADDR, V390DK1_COMMAND_SIZE, V390DK1_COMMAND_SET_ENABLE_OVERCLOCKING);
 Serial.println(sweepval);
 zdelay(DELAY_BETWEEN_IIC_WRITES);
-EEPROM.write(ARBITRARY_BYTE_8, sweepval+1); 
+EEPROM.update(ARBITRARY_BYTE_8, sweepval+1); 
 wdt_disable();
 while(1){;}
 softReset();

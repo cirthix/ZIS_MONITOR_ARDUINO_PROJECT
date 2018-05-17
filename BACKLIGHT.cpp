@@ -150,7 +150,7 @@ void Backlight::SetMode(uint8_t mode){
   }
 }
 
-void  Backlight::EEpromWriteMode(){EEPROM.write(ADDRESS_BACKLIGHT_MODE, Backlight::GetMode());}
+void  Backlight::EEpromWriteMode(){EEPROM.update(ADDRESS_BACKLIGHT_MODE, Backlight::GetMode());}
 
 void  Backlight::EEpromWriteBrightness(){
   switch (Backlight::GetMode()) {
@@ -161,9 +161,9 @@ void  Backlight::EEpromWriteBrightness(){
   }
 }
   
-void  Backlight::EEpromWriteStableBrightness(){EEPROM.write(ADDRESS_BACKLIGHT_LEVEL_STABLE, BrightnessStable);}
-void  Backlight::EEpromWritePulseBrightness(){EEPROM.write(ADDRESS_BACKLIGHT_LEVEL_PULSE, BrightnessPulse);}
-void  Backlight::EEpromWriteFrequency(){EEPROM.write(ADDRESS_PWM_FREQUENCY, FrequencyReal/SAVED_FREQUENCY_SCALING);}
+void  Backlight::EEpromWriteStableBrightness(){EEPROM.update(ADDRESS_BACKLIGHT_LEVEL_STABLE, BrightnessStable);}
+void  Backlight::EEpromWritePulseBrightness(){EEPROM.update(ADDRESS_BACKLIGHT_LEVEL_PULSE, BrightnessPulse);}
+void  Backlight::EEpromWriteFrequency(){EEPROM.update(ADDRESS_PWM_FREQUENCY, FrequencyReal/SAVED_FREQUENCY_SCALING);}
 
 uint8_t  Backlight::EEpromReadMode(){return EEPROM.read(ADDRESS_BACKLIGHT_MODE);}
 uint8_t  Backlight::EEpromReadStableBrightness(){  return  Backlight::LimitBrightness(EEPROM.read(ADDRESS_BACKLIGHT_LEVEL_STABLE));}
@@ -619,7 +619,12 @@ void Backlight::Interrupt(){
     RecentInputPulse=true;   
 }
  
-uint8_t Backlight::FastReadDE()   { return digitalRead2(DATA_ENABLE);        }
+uint8_t Backlight::FastReadDE()   { 
+  #ifdef DATA_ENABLE
+  return digitalRead2(DATA_ENABLE);    
+  #endif
+  return 0;
+  }
 
 void Backlight::SetBLEN_OFF(){  
 #ifdef BACKLIGHT_ENABLE
@@ -662,15 +667,3 @@ void Backlight::SetHighCurrent_ON(){
     digitalWrite(BACKLIGHT_HIGH_CURRENT_MODE, HIGH);
   #endif  
 }
-
-
-
-
-
-
-
-
-
-
-
-

@@ -242,7 +242,6 @@ uint8_t check_buffered_edid(){
 // Return 0 if edid appears valid, 1 otherwise.
 const uint8_t NUMBER_OF_EXTENSIONS = 127-1;
 Serial.println(F("Checking EDID"));
-
 if(check_if_allzero_edid()==true) { return 0;}  
 //dump_buffered_edid();
   for(uint8_t i=0; i<EDID_SIGNATURE_SIZE; i++){
@@ -292,6 +291,7 @@ void set_selected_edid() {
 #ifdef CHIP_IS_EP369 
   #ifdef EXTERNAL_IIC_CONFIGURATION_EEPROM
     StopSyncInterrupt();
+    
     power_down_display();
     power_down_board();  
     write_external_all_zero_config(); 

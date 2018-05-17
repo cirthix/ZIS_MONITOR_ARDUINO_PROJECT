@@ -141,8 +141,7 @@ Serial.println(F("\nINIT/MISC"));
   Serial.flush();
   FinishedConfigurationTime=millis();
 
-
-  
+ 
 }
 
 
@@ -222,7 +221,6 @@ void TaskFastest() {
 
 
 void Task1ms(){
-//  if(CheckVideoActive()==false) { softReset(); }
 }
 
 void Task10ms(){  
@@ -257,18 +255,259 @@ void Task10000ms(){
   PrintSystemState();
 }
 
-void HandleSystemState(){
-  
-  if((CheckVideoActive() == true ) && (VideoWasActive == false) ) { VideoWasActive=true;  Serial.print(F("\n VIDEO found\n")); Serial.flush(); }
-  if((CheckVideoActive() == false ) && (VideoWasActive == true) ) { VideoWasActive=false; Serial.print(F("\n VIDEO lost\n"));  Serial.flush(); }
 
-  if((PanelWasOnline == false) && (UserConfiguration_LoadShutdown()==TargetPowerSaveFULLY_ON) && (CheckVideoActive() == true )) {power_up_display(); }
-  if((PanelWasOnline == true) && ((UserConfiguration_LoadShutdown()!=TargetPowerSaveFULLY_ON) || (CheckVideoActive() == false ))) {power_down_display(); }
-  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+const uint32_t SystemStateDelay_OffToRx = 10;
+const uint32_t SystemStateDelay_RxToTx = 10;
+const uint32_t SystemStateDelay_TxToPanel = 10;
+
+
+uint8_t SystemState = SystemState_Init;
+const uint32_t SystemStateHandlerCallRateMilliseconds = 10;
+uint32_t SystemStateCounter = 0;
+// Note : To keep timing of state transitions proper, call this function consistently.
+void HandleSystemState(){
+  // This function handles all 'forward' transitions.  Transitions to 'lower' states are handled elsewhere because these situations are caused by external events.
+  if(SystemStateCounter <= SystemStateHandlerCallRateMilliseconds ) {
+    SystemStateCounter = 0;
+  } else {
+    SystemStateCounter = SystemStateCounter - SystemStateHandlerCallRateMilliseconds;
+  }
+
+boolean WatchStateChanges = true;
+
+    uint8_t myInputPowerFailure = InputPowerFailure();
+    uint8_t myUserConfiguration_LoadShutdown = UserConfiguration_LoadShutdown();
+    switch (SystemState) {
+      case SystemState_Init:     
+      if(WatchStateChanges) Serial.println(F("SysState : Init0"));
+          power_down_board();
+          power_down_receivers();
+          power_down_transmitters();
+          SystemStateCounter=0;
+          SystemState=SystemState_PowerOff;
+        break;
+      case SystemState_PowerOff:     
+        if( (myUserConfiguration_LoadShutdown!=TargetPowerSaveSHUTDOWN) && (myInputPowerFailure==false ) ){
+      if(WatchStateChanges) Serial.println(F("SysState : Off0"));
+          power_up_board();
+          SystemStateCounter=SystemStateDelay_OffToRx;
+          SystemState=SystemState_Rx;
+        }
+        break;
+      case SystemState_Rx:
+        if( (SystemStateCounter==0) && (myUserConfiguration_LoadShutdown==TargetPowerSaveFULLY_ON) && (myInputPowerFailure==false ) ){
+      if(WatchStateChanges) Serial.println(F("SysState : Rx0"));
+          power_up_receivers();    
+          SystemStateCounter=SystemStateDelay_RxToTx;
+          SystemState=SystemState_Tx;
+          break;
+        }
+        if( (myUserConfiguration_LoadShutdown==TargetPowerSaveSHUTDOWN) || (myInputPowerFailure==true ) ){
+      if(WatchStateChanges) Serial.println(F("SysState : Rx1"));
+          power_down_board();
+          SystemStateCounter=0;
+          SystemState=SystemState_PowerOff;
+          break;
+        }    
+        break;
+      case SystemState_Tx:       
+        if( (myUserConfiguration_LoadShutdown==TargetPowerSaveSHUTDOWN) || (myInputPowerFailure==true ) ){
+      if(WatchStateChanges) Serial.println(F("SysState : Tx0"));
+          power_down_receivers();
+          power_down_board();
+          SystemState=SystemState_PowerOff;
+          break;      
+        }
+        if( myUserConfiguration_LoadShutdown==TargetPowerSaveLOWPOWER ){
+      if(WatchStateChanges) Serial.println(F("SysState : Tx1"));
+          power_down_receivers();
+          SystemState=SystemState_Rx;
+          break;      
+        }
+        if(SystemStateCounter==0) {
+      if(WatchStateChanges) Serial.println(F("SysState : Tx2"));
+          power_up_transmitters();
+          SystemStateCounter=SystemStateDelay_TxToPanel;
+          SystemState=SystemState_Panel;
+          break;    
+        }  
+        break;
+      case SystemState_Panel:            
+        if( (myUserConfiguration_LoadShutdown==TargetPowerSaveSHUTDOWN) || (myInputPowerFailure==true ) ){
+      if(WatchStateChanges) Serial.println(F("SysState : P0"));
+          power_down_transmitters();
+          power_down_receivers();
+          power_down_board();
+          SystemStateCounter=0;
+          SystemState=SystemState_PowerOff;
+          break;
+        }
+        if( myUserConfiguration_LoadShutdown==TargetPowerSaveLOWPOWER ){
+      if(WatchStateChanges) Serial.println(F("SysState : P1"));
+          power_down_transmitters();
+          power_down_receivers();
+          SystemStateCounter=SystemStateDelay_OffToRx;
+          SystemState=SystemState_Rx;
+          break;
+        }
+      
+        if ( (SystemStateCounter==0) && (CheckVideoActive() == true ) ) {
+      if(WatchStateChanges) Serial.println(F("SysState : P2"));
+          power_up_display();
+          SystemStateCounter=VIDEO_SIGNAL_TO_BACKLIGHT_ON_DELAY;
+          SystemState=SystemState_Backlight;
+          break;
+        }  
+      break;      
+      case SystemState_Backlight: 
+        if( (myUserConfiguration_LoadShutdown==TargetPowerSaveSHUTDOWN) || (myInputPowerFailure==true ) ){
+      if(WatchStateChanges) Serial.println(F("SysState : B0"));
+          power_down_display();
+          power_down_transmitters();
+          power_down_receivers();
+          power_down_board();
+          SystemStateCounter=0;
+          SystemState=SystemState_PowerOff;
+          break;
+        }
+        if( myUserConfiguration_LoadShutdown==TargetPowerSaveLOWPOWER ){
+          if(WatchStateChanges) Serial.println(F("SysState : B1"));
+          power_down_display();
+          power_down_transmitters();
+          power_down_receivers();
+          SystemStateCounter=SystemStateDelay_OffToRx;
+          SystemState=SystemState_Rx;
+          break;
+        }
+        if ( CheckVideoActive() == false ) {
+          if(WatchStateChanges) Serial.println(F("SysState : B2"));
+          Backlight.SetMode(BACKLIGHT_MODE_OFF);
+          SystemStateCounter=0;
+          SystemState=SystemState_Panel;
+          break;
+        }          
+        if ( SystemStateCounter==0 ) {
+          if(WatchStateChanges) Serial.println(F("SysState : B3"));
+          Backlight.SetMode(BACKLIGHT_MODE_STABLE);
+          SystemStateCounter=0;
+          SystemState=SystemState_On;
+          break;    
+        }  
+        break;
+      case SystemState_On: 
+        if( (myUserConfiguration_LoadShutdown==TargetPowerSaveSHUTDOWN) || (myInputPowerFailure==true ) ){
+          if(WatchStateChanges) Serial.println(F("SysState : ON0"));
+          Backlight.SetMode(BACKLIGHT_MODE_OFF);
+          power_down_display();
+          power_down_transmitters();
+          power_down_receivers();
+          power_down_board();
+          SystemStateCounter=0;
+          SystemState=SystemState_PowerOff;
+          break;
+        }
+        if( myUserConfiguration_LoadShutdown==TargetPowerSaveLOWPOWER ){
+          if(WatchStateChanges) Serial.println(F("SysState : ON1"));
+          Backlight.SetMode(BACKLIGHT_MODE_OFF);
+          power_down_display();
+          power_down_transmitters();
+          power_down_receivers();
+          SystemStateCounter=SystemStateDelay_OffToRx;
+          SystemState=SystemState_Rx;
+          break;
+        }
+        if ( CheckVideoActive() == false ) {
+          if(WatchStateChanges) Serial.println(F("SysState : ON2"));
+          Backlight.SetMode(BACKLIGHT_MODE_OFF);
+          SystemStateCounter=0;
+          SystemState=SystemState_Panel;
+          break;
+        }          
+        break;
+      default:                
+        if(WatchStateChanges) Serial.print(F("SysState : DEFAULTED :")); Serial.println(SystemState );
+        SystemState = SystemState_PowerOff;
+        SystemStateCounter = 0;      
+    }
+ 
 }
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 void PrintSystemState(){  
-  if(UserConfiguration_LoadShutdown()==TargetPowerSaveFULLY_ON) { Serial.println(F("System ON")); } else { Serial.println(F("System OFF")); }  
+  
+Serial.print(F("SystemState : ")); 
+  switch (SystemState) {
+  case SystemState_PowerOff:     Serial.println(F("OFF"));   break;
+  case SystemState_Rx    :       Serial.println(F("RX"));    break;
+  case SystemState_Tx    :       Serial.println(F("TX"));    break;
+  case SystemState_Panel  :      Serial.println(F("Panel")); break;
+  case SystemState_Backlight:    Serial.println(F("BL"));    break;
+  case SystemState_On:           Serial.println(F("ON"));    break;
+  default:                       Serial.print(F("???"));  Serial.println(SystemState);
+  }
+  
+uint8_t myUserConfiguration_LoadShutdown=UserConfiguration_LoadShutdown();
+Serial.print(F("TargetState : ")); 
+  switch (UserConfiguration_LoadShutdown()) {
+  case TargetPowerSaveSHUTDOWN:  Serial.println(F("OFF"));  break;
+  case TargetPowerSaveLOWPOWER:  Serial.println(F("LOW"));  break;
+  case TargetPowerSaveFULLY_ON:  Serial.println(F("ON"));   break;
+  default:                       Serial.print(F("???"));   Serial.println(myUserConfiguration_LoadShutdown);
+  }
+  
   if(MASTERSLAVE_MODE==true) {
     if(I_AM_A_SLAVE == true){ Serial.println(F("Slave device")); } else { Serial.println(F("Master device")); }
   }
@@ -331,7 +570,7 @@ uint16_t GetRefreshRate(){
 
 uint8_t CheckVideoActive(){
   #ifdef ACTIVE_VIDEO
-    return digitalRead(ACTIVE_VIDEO);}
+    return digitalRead(ACTIVE_VIDEO);
   #endif    
   return Backlight.CheckForActiveVideo();
 }
@@ -559,122 +798,64 @@ if(CONTROL_VREG_VPANEL_POLARITY==ACTIVE_HIGH){  digitalWrite(CONTROL_VREG_VPANEL
 PanelWasOnline=false;
 }
 
+void power_down_transmitters() {
 
-void run_startup_script_chip() {
+#ifdef LOW_POWER_MODE
+pinMode(LOW_POWER_MODE,OUTPUT);  
+digitalWrite(LOW_POWER_MODE, HIGH);
+#endif  
+}
+
+void power_up_transmitters() {
   // Set static pin configuration pins
 
 #ifdef CHIP_IS_EP269 
 #ifdef RESET_OTHER_CHIPS
-  pinMode(RESET_OTHER_CHIPS,OUTPUT); digitalWrite(RESET_OTHER_CHIPS, LOW); zdelay(100); 
+  pinMode(RESET_OTHER_CHIPS,OUTPUT); digitalWrite(RESET_OTHER_CHIPS, LOW);
 #endif
 #endif
-
 
 #ifdef CHIP_IS_EP269 
-// A good working config is tmode (for 4ch operation) + RS (reduced artifacts)
-  set_static_config_pins(
-// CONFIGMASK_EPMI_EO     |
-// CONFIGMASK_EPMI_LR     |
- CONFIGMASK_EPMI_TMODE    |
-#if PIXEL_ORDERING == PIXEL_ORDERING_LEFTRIGHT 
- CONFIGMASK_EPMI_DMODE       |
- #endif
-#if LVDS_SWING_LEVEL == LVDS_SWING_LEVEL_HIGH 
- CONFIGMASK_EPMI_RS        |  
- #endif
-0x00 );
+  set_static_config_pins(ConfigGenerateEPMI());
 #endif
 
 #ifdef CHIP_IS_EP369
-uint8_t ep369_config=
-
-#if LVDS_MAPPING==LVDS_MAPPING_JEIDA
- CONFIGMASK_EPMI_MAP  |
+  set_static_config_pins(ConfigGenerateEPMI());
 #endif
 
 
-// CONFIGMASK_EPMI_EO   |
- CONFIGMASK_EPMI_LR   |
- CONFIGMASK_EPMI_TMODE  |
-#if PIXEL_ORDERING == PIXEL_ORDERING_LEFTRIGHT 
- CONFIGMASK_EPMI_DMODE  |
- #endif
-#if LVDS_SWING_LEVEL == LVDS_SWING_LEVEL_HIGH
- CONFIGMASK_EPMI_RS        |  
- #endif
- 0x00;
+#ifdef LOW_POWER_MODE
+pinMode(LOW_POWER_MODE,OUTPUT);  
+digitalWrite(LOW_POWER_MODE, LOW);
+#endif  
 
-// DW1,DW0 WIDTH meaning: 00=10BIT, 10=8BIT, 01=6BIT, 11=POWERDOWN
-    switch(PANEL_BIT_DEPTH) {
-    case 6: ep369_config=ep369_config| CONFIGMASK_EPMI_DW1 ; break;// DW1,DW0=10
-    case 8: ep369_config=ep369_config| CONFIGMASK_EPMI_DW0 ; break;// DW1,DW0=01
-    case 10: ep369_config=ep369_config ; break; // DW1,DW0=00
-    default: ep369_config=ep369_config | CONFIGMASK_EPMI_DW1| CONFIGMASK_EPMI_DW0; Serial.println(F("Bits??")); 
-    }
- 
-  set_static_config_pins(ep369_config);
-#endif
 
+}
+
+void power_up_receivers() {
 
 #ifdef RESET_OTHER_CHIPS
  pinMode(RESET_OTHER_CHIPS,OUTPUT); digitalWrite(RESET_OTHER_CHIPS, HIGH);
 #endif
 
-
-// If the board uses internal configuration eeprom emulation, do that here
-serve_the_configuration_eeprom();
-
 }
 
 
-void serve_the_configuration_eeprom(){
-#ifdef INTERNAL_IIC_CONFIGURATION_EEPROM
-    Serial.println(F("INIT/IICSLAVE"));    
-    #ifdef CHIP_IS_EP369
-       act_as_iic_slave(0x50, 128); //sizeof(EDID)
-    #endif
-    #ifdef CHIP_IS_EP269
-        act_as_iic_slave(0x52, 0xff);
-        act_as_iic_slave(0x53, 0x50);
-    #endif      
-#endif  
+void power_down_receivers() {
+#ifdef CHIP_IS_EP269 
+#ifdef RESET_OTHER_CHIPS
+  pinMode(RESET_OTHER_CHIPS,OUTPUT); digitalWrite(RESET_OTHER_CHIPS, LOW);  
+#endif
+#endif
+
+#ifdef CHIP_IS_EP269 
+  set_static_config_pins(0x00);
+#endif
+
+#ifdef CHIP_IS_EP369
+  set_static_config_pins(0x00);
+#endif
 }
-
-
-uint8_t act_as_iic_slave(uint8_t device_address, uint16_t num_bytes){
-  Serial.print(F("\tServing ")); Serial.print(num_bytes); Serial.println(F(" bytes"));
-    Serial.flush();
-noInterrupts();   
-wdt_disable();
-//my_SoftIIC_EPMI.disable_timeout();
-    configure_watchdog_timer_slow(); 
-    uint16_t successful_bytes=0;
-    wdt_reset();
-    uint16_t k=0;
-    while(successful_bytes<num_bytes-1){   
-          successful_bytes=successful_bytes+my_SoftIIC_EPMI.SlaveHandleTransaction(respond_to_address, respond_to_command, respond_to_data, get_current_register_address, set_current_register_address, read_iic_slave, write_iic_slave);
-          if(k>2048) {
-            k=0;   Serial.print(F("IIC bytes:")); Serial.println(successful_bytes);  //Serial.flush();
-          }
-          k++;
-    }
-    Serial.println(F("\t->OK"));
-    wdt_reset();
-    configure_watchdog_timer();
-    wdt_reset();
-    interrupts();
-  return 0;
-}
-
-
-
-void dump_iic_traffic_for_a_while(){
-    wdt_disable();
-    my_SoftIIC_EPMI.Snoop(1024);
-    power_down_board();
-    while(1);
-}
-
 
 void power_up_board() {
 const uint32_t MILLISECONDS_BETWEEN_V3P3_AND_SECONDARY_POWERUP = 10;
@@ -710,8 +891,6 @@ while(digitalRead(PGOOD_VREG_SECONDARY)==LOW){} // waits until dc/dc is on
   Serial.println(F("\tB+"));
 // Note that there is an observed ~500ms delay between ep369 power-up and the first i2c transaction to get the EDID.  This could change in future ep369 firmwares
 
-  
-run_startup_script_chip(); 
 BoardWasOnline=true;  
 }
 
@@ -955,22 +1134,14 @@ void toggle_power_state() {
 void set_off_power_state(){
   return set_low_power_state();
   // Do not support ultra-low-power state right now, because it screws with DP autodetection.  
-  //if((UserConfiguration_LoadShutdown() != TargetPowerSaveSHUTDOWN ) || (PanelWasOnline == true) ) { power_down_display();  }
-  //if((UserConfiguration_LoadShutdown() != TargetPowerSaveSHUTDOWN ) || (BoardWasOnline == true) ) { power_down_board(); }
-  //  UserConfiguration_SaveShutdown(TargetPowerSaveLOWPOWER);
 }
 
 void set_low_power_state(){
-  if((UserConfiguration_LoadShutdown() != TargetPowerSaveLOWPOWER ) || (PanelWasOnline == true) ) { power_down_display();  }
-  if((UserConfiguration_LoadShutdown() != TargetPowerSaveLOWPOWER ) || (BoardWasOnline == false) ) { power_up_board(); }
     UserConfiguration_SaveShutdown(TargetPowerSaveLOWPOWER);
 }
 
 void set_on_power_state(){
-//  if((UserConfiguration_LoadShutdown() != TargetPowerSaveFULLY_ON ) || (PanelWasOnline == false) ) { power_up_display();  }
-  if((UserConfiguration_LoadShutdown() != TargetPowerSaveFULLY_ON ) || (BoardWasOnline == false) ) { power_up_board(); }
     UserConfiguration_SaveShutdown(TargetPowerSaveFULLY_ON);
-    zdelay(10);
 }
 
 
@@ -1010,7 +1181,7 @@ void write_config_eeprom(){
     #endif
     #ifdef CHIP_IS_EP369  
 //        Serial.print(F("WrExt:")); PrintWhichEDIDSelected(); dump_buffered_edid();
-        update_eeprom(&my_SoftIIC_EPMI, 0x50, virtualeeprom);
+        update_eeprom(&my_SoftIIC_EPMI, 0x50, virtualeeprom_ep369_config);
     #endif        
 //  my_SoftIIC_EPMI.MasterDumpAll();
 }
@@ -1026,6 +1197,11 @@ void write_external_all_zero_config(){
 void write_external_edid(){
     #ifdef EXTERNAL_WRITEABLE_EDID
 //        Serial.print(F("WrExt:")); PrintWhichEDIDSelected(); dump_buffered_edid();
+    #ifdef CHIP_IS_EP369  
+//        Serial.print(F("WrExt:")); PrintWhichEDIDSelected(); dump_buffered_edid();
+        update_eeprom(&my_SoftIIC_EDID, 0x50, virtualeeprom_ep369_config);
+        return;
+    #endif        
         update_eeprom(&my_SoftIIC_EDID, EDID_IIC_ADDRESS, virtualeeprom_edid);
     #endif
 }
