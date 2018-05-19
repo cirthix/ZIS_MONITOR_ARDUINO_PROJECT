@@ -61,7 +61,7 @@ inline void panel_script_refreshratechange(){}  // this function is only used if
   const uint8_t PANEL_VOLTAGE = 12;
   #define PANEL_RESOLUTION_X 2560 // This should be 3840...
   #define PANEL_BIT_DEPTH     10 
-  #define LVDS_SWING_LEVEL LVDS_SWING_LEVEL_HIGH  
+  #define LVDS_SWING_LEVEL LVDS_SWING_LEVEL_LOW  
   #define PIXEL_ORDERING PIXEL_ORDERING_SEQUENTIAL
   #define LVDS_MAPPING LVDS_MAPPING_VESA
   #define PANEL_SERIAL_CONTROL PANEL_GPIO0  // Connect to pin 7 of the 51pin connector on TCON.  High turns on the OSD.  Off or floating disables the OSD.
