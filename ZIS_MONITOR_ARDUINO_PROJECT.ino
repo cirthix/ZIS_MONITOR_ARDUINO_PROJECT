@@ -310,7 +310,7 @@ boolean WatchStateChanges = true;
     uint8_t myUserConfiguration_LoadShutdown = UserConfiguration_LoadShutdown();
     switch (SystemState) {
       case SystemState_Init:     
-      if(WatchStateChanges) Serial.println(F("SysState : Init0"));
+      if(WatchStateChanges) Serial.println(F("SysStateTransition : Init0"));
           power_down_board();
           power_down_receivers();
           power_down_transmitters();
@@ -319,7 +319,7 @@ boolean WatchStateChanges = true;
         break;
       case SystemState_PowerOff:     
         if( (myUserConfiguration_LoadShutdown!=TargetPowerSaveSHUTDOWN) && (myInputPowerFailure==false ) ){
-      if(WatchStateChanges) Serial.println(F("SysState : Off0"));
+      if(WatchStateChanges) Serial.println(F("SysStateTransition : Off0"));
           power_up_board();
           SystemStateCounter=SystemStateDelay_OffToRx;
           SystemState=SystemState_Rx;
@@ -327,14 +327,14 @@ boolean WatchStateChanges = true;
         break;
       case SystemState_Rx:
         if( (SystemStateCounter==0) && (myUserConfiguration_LoadShutdown==TargetPowerSaveFULLY_ON) && (myInputPowerFailure==false ) ){
-      if(WatchStateChanges) Serial.println(F("SysState : Rx0"));
+      if(WatchStateChanges) Serial.println(F("SysStateTransition : Rx0"));
           power_up_receivers();    
           SystemStateCounter=SystemStateDelay_RxToTx;
           SystemState=SystemState_Tx;
           break;
         }
         if( (myUserConfiguration_LoadShutdown==TargetPowerSaveSHUTDOWN) || (myInputPowerFailure==true ) ){
-      if(WatchStateChanges) Serial.println(F("SysState : Rx1"));
+      if(WatchStateChanges) Serial.println(F("SysStateTransition : Rx1"));
           power_down_board();
           SystemStateCounter=0;
           SystemState=SystemState_PowerOff;
@@ -343,20 +343,20 @@ boolean WatchStateChanges = true;
         break;
       case SystemState_Tx:       
         if( (myUserConfiguration_LoadShutdown==TargetPowerSaveSHUTDOWN) || (myInputPowerFailure==true ) ){
-      if(WatchStateChanges) Serial.println(F("SysState : Tx0"));
+      if(WatchStateChanges) Serial.println(F("SysStateTransition : Tx0"));
           power_down_receivers();
           power_down_board();
           SystemState=SystemState_PowerOff;
           break;      
         }
         if( myUserConfiguration_LoadShutdown==TargetPowerSaveLOWPOWER ){
-      if(WatchStateChanges) Serial.println(F("SysState : Tx1"));
+      if(WatchStateChanges) Serial.println(F("SysStateTransition : Tx1"));
           power_down_receivers();
           SystemState=SystemState_Rx;
           break;      
         }
         if(SystemStateCounter==0) {
-      if(WatchStateChanges) Serial.println(F("SysState : Tx2"));
+      if(WatchStateChanges) Serial.println(F("SysStateTransition : Tx2"));
           power_up_transmitters();
           SystemStateCounter=SystemStateDelay_TxToPanel;
           SystemState=SystemState_Panel;
@@ -365,7 +365,7 @@ boolean WatchStateChanges = true;
         break;
       case SystemState_Panel:            
         if( (myUserConfiguration_LoadShutdown==TargetPowerSaveSHUTDOWN) || (myInputPowerFailure==true ) ){
-      if(WatchStateChanges) Serial.println(F("SysState : P0"));
+      if(WatchStateChanges) Serial.println(F("SysStateTransition : P0"));
           power_down_transmitters();
           power_down_receivers();
           power_down_board();
@@ -374,7 +374,7 @@ boolean WatchStateChanges = true;
           break;
         }
         if( myUserConfiguration_LoadShutdown==TargetPowerSaveLOWPOWER ){
-      if(WatchStateChanges) Serial.println(F("SysState : P1"));
+      if(WatchStateChanges) Serial.println(F("SysStateTransition : P1"));
           power_down_transmitters();
           power_down_receivers();
           SystemStateCounter=SystemStateDelay_OffToRx;
@@ -383,7 +383,7 @@ boolean WatchStateChanges = true;
         }
       
         if ( (SystemStateCounter==0) && (CheckVideoActive() == true ) ) {
-      if(WatchStateChanges) Serial.println(F("SysState : P2"));
+      if(WatchStateChanges) Serial.println(F("SysStateTransition : P2"));
           power_up_display();
           SystemStateCounter=VIDEO_SIGNAL_TO_BACKLIGHT_ON_DELAY;
           SystemState=SystemState_Backlight;
@@ -392,7 +392,7 @@ boolean WatchStateChanges = true;
       break;      
       case SystemState_Backlight: 
         if( (myUserConfiguration_LoadShutdown==TargetPowerSaveSHUTDOWN) || (myInputPowerFailure==true ) ){
-      if(WatchStateChanges) Serial.println(F("SysState : B0"));
+      if(WatchStateChanges) Serial.println(F("SysStateTransition : B0"));
           power_down_display();
           power_down_transmitters();
           power_down_receivers();
@@ -402,7 +402,7 @@ boolean WatchStateChanges = true;
           break;
         }
         if( myUserConfiguration_LoadShutdown==TargetPowerSaveLOWPOWER ){
-          if(WatchStateChanges) Serial.println(F("SysState : B1"));
+          if(WatchStateChanges) Serial.println(F("SysStateTransition : B1"));
           power_down_display();
           power_down_transmitters();
           power_down_receivers();
@@ -411,14 +411,14 @@ boolean WatchStateChanges = true;
           break;
         }
         if ( CheckVideoActive() == false ) {
-          if(WatchStateChanges) Serial.println(F("SysState : B2"));
+          if(WatchStateChanges) Serial.println(F("SysStateTransition : B2"));
           Backlight.SetMode(BACKLIGHT_MODE_OFF);
           SystemStateCounter=0;
           SystemState=SystemState_Panel;
           break;
         }          
         if ( SystemStateCounter==0 ) {
-          if(WatchStateChanges) Serial.println(F("SysState : B3"));
+          if(WatchStateChanges) Serial.println(F("SysStateTransition : B3"));
           Backlight.SetMode(BACKLIGHT_MODE_STABLE);
           SystemStateCounter=0;
           SystemState=SystemState_On;
@@ -427,7 +427,7 @@ boolean WatchStateChanges = true;
         break;
       case SystemState_On: 
         if( (myUserConfiguration_LoadShutdown==TargetPowerSaveSHUTDOWN) || (myInputPowerFailure==true ) ){
-          if(WatchStateChanges) Serial.println(F("SysState : ON0"));
+          if(WatchStateChanges) Serial.println(F("SysStateTransition : ON0"));
           Backlight.SetMode(BACKLIGHT_MODE_OFF);
           power_down_display();
           power_down_transmitters();
@@ -438,7 +438,7 @@ boolean WatchStateChanges = true;
           break;
         }
         if( myUserConfiguration_LoadShutdown==TargetPowerSaveLOWPOWER ){
-          if(WatchStateChanges) Serial.println(F("SysState : ON1"));
+          if(WatchStateChanges) Serial.println(F("SysStateTransition : ON1"));
           Backlight.SetMode(BACKLIGHT_MODE_OFF);
           power_down_display();
           power_down_transmitters();
@@ -448,15 +448,16 @@ boolean WatchStateChanges = true;
           break;
         }
         if ( CheckVideoActive() == false ) {
-          if(WatchStateChanges) Serial.println(F("SysState : ON2"));
+          if(WatchStateChanges) Serial.println(F("SysStateTransition : ON2"));
           Backlight.SetMode(BACKLIGHT_MODE_OFF);
+          power_down_display();
           SystemStateCounter=0;
           SystemState=SystemState_Panel;
           break;
         }          
         break;
       default:                
-        if(WatchStateChanges) Serial.print(F("SysState : DEFAULTED :")); Serial.println(SystemState );
+        if(WatchStateChanges) Serial.print(F("SysStateTransition : DEFAULTED :")); Serial.println(SystemState );
         SystemState = SystemState_PowerOff;
         SystemStateCounter = 0;      
     }

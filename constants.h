@@ -110,16 +110,16 @@ const uint16_t SIZE_EDID                = 256;  // IF A 128-BYTE EDID IS USED, J
 const uint8_t EDID_SIGNATURE_SIZE = 8;
 PROGMEM const uint8_t EDID_SIGNATURE[]      = {0x00, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x00};
 
-const uint16_t ADDRESS_MAGIC_BYTE               = 10;
-const uint16_t ADDRESS_POWER_STATE              = 11;
-const uint16_t ADDRESS_SELECTED_EDID            = 12;
-const uint16_t ADDRESS_BACKLIGHT_MODE           = 13;
-const uint16_t ADDRESS_BACKLIGHT_LEVEL_STABLE   = 14;
-const uint16_t ADDRESS_BACKLIGHT_LEVEL_PULSE    = 15;
-const uint16_t ADDRESS_PWM_FREQUENCY            = 16;
-const uint16_t ADDRESS_WAS_SLAVE                = 17;
-const uint16_t ADDRESS_OSD_ENABLED              = 18;
-const uint16_t ADDRESS_USE_OCTESTMODE           = 19;
+const uint16_t ADDRESS_MAGIC_BYTE               = 16;
+const uint16_t ADDRESS_POWER_STATE              = 17;
+const uint16_t ADDRESS_SELECTED_EDID            = 18;
+const uint16_t ADDRESS_BACKLIGHT_MODE           = 19;
+const uint16_t ADDRESS_BACKLIGHT_LEVEL_STABLE   = 20;
+const uint16_t ADDRESS_BACKLIGHT_LEVEL_PULSE    = 21;
+const uint16_t ADDRESS_PWM_FREQUENCY            = 22;
+const uint16_t ADDRESS_WAS_SLAVE                = 23;
+const uint16_t ADDRESS_OSD_ENABLED              = 24;
+const uint16_t ADDRESS_USE_OCTESTMODE           = 25;
 
 #define I2C_TIMEOUT 10
 

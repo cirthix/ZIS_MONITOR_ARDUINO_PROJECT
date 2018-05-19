@@ -2,7 +2,7 @@
 #define SUPPORTEDBOARDS_H
 
 // Important : If using EP369 with new firmware, select this option:
-//#define CHIP_IS_EP369_WITH_NEW_FIRMWARE
+#define CHIP_IS_EP369_WITH_NEW_FIRMWARE
 
 
 #if BOARD_VERSION==BOARD_IS_EP369_REV2017
