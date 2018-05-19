@@ -24,7 +24,7 @@
 #include <SoftwareSerial.h>
 #include <avr/wdt.h>
 #include "constants.h"
-#include "Backlight.h"
+#include "BACKLIGHT.h"
 #include "INPUT_HANDLING.h"
 uint8_t BUFFERED_EDID[SIZE_EDID];
 #include "IIC_PERSONALITY.h"
