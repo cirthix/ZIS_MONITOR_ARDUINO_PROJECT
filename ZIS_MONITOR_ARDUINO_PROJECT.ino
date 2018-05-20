@@ -586,6 +586,15 @@ void SetStaticPins(){
   pinMode(ALWAYS_HIGH, OUTPUT);
   digitalWrite(ALWAYS_HIGH, HIGH);
 #endif
+
+
+#ifdef PANEL_GPIO0
+  pinMode(PANEL_GPIO0, INPUT);
+#endif
+
+#ifdef PANEL_GPIO1
+  pinMode(PANEL_GPIO1, INPUT);
+#endif
 }
 
 uint8_t InputPowerFailure(){
